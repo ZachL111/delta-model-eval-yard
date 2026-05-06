@@ -1,68 +1,40 @@
 # delta-model-eval-yard
 
-`delta-model-eval-yard` packages a practical ml utilities exercise in Haskell. The emphasis is on deterministic behavior, a small public API, and examples that explain the tradeoffs.
+`delta-model-eval-yard` keeps a focused Haskell implementation around ml utilities. The project goal is to create a Haskell reference implementation for eval workflows, centered on format conversion, round-trip fixtures, and lossless normalization checks.
 
-## How I Read Delta Model Eval Yard
+## Why It Exists
 
-The useful thing to inspect here is how the same score rule is represented in code, metadata, and examples. If those three pieces disagree, the audit script should make the drift visible.
+This is intentionally local and self-contained so it can be inspected without credentials, services, or seeded history.
 
-## Problem Shape
+## Delta Model Eval Yard Review Notes
 
-The goal is to capture the core behavior in code and make the surrounding assumptions obvious. A reader should be able to run the verifier, open the fixtures, and understand why each decision was made.
+The first comparison I would make is `window width` against `explainability` because it shows where the rule is most opinionated.
 
-## Main Behaviors
+## Features
 
-- Models feature signals with deterministic scoring and explicit review decisions.
-- Uses fixture data to keep metric checks changes visible in code review.
-- Includes extended examples for windowed behavior, including `surge` and `degraded`.
-- Documents explainable outputs tradeoffs in `docs/operations.md`.
-- Runs locally with a single verification command and no external credentials.
+- `fixtures/domain_review.csv` adds cases for feature drift and window width.
+- `metadata/domain-review.json` records the same cases in structured form.
+- `config/review-profile.json` captures the read order and the two review questions.
+- `examples/delta-model-eval-walkthrough.md` walks through the case spread.
+- The Haskell code includes a review path for `window width` and `explainability`.
+- `docs/field-notes.md` explains the strongest and weakest cases.
 
-## Internal Model
+## Architecture Notes
 
-The core is a scoring model over demand, capacity, latency, risk, and weight. That keeps feature signals, metric checks, and windowed behavior in one explicit decision path. The threshold is 169, with risk penalty 7, latency penalty 3, and weight bonus 5. The Haskell code keeps the pure scoring function isolated so tests can check it without setup.
+The fixture data drives the tests. The code stays thin, while `metadata/domain-review.json` and `config/review-profile.json` explain what each case is meant to protect.
 
-## Repository Map
+The Haskell implementation avoids hidden state so fixture changes are easy to reason about.
 
-- `src`: primary implementation
-- `tests`: verification harness
-- `fixtures`: compact golden scenarios
-- `examples`: expanded scenario set
-- `metadata`: project constants and verification metadata
-- `docs`: operations and extension notes
-- `scripts`: local verification and audit commands
-
-## Run It Locally
-
-Use a normal shell with Haskell available on `PATH`. The verifier is written as a PowerShell script because the portfolio was assembled on Windows.
-
-## How To Run It
+## Usage
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1
 ```
 
-This runs the language-level build or test path against the compact fixture set.
+## Tests
 
-## Validation
+The verifier is intentionally local. It should fail if the fixture score math, lane assignment, or language-specific test drifts.
 
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts/audit.ps1
-```
+## Limitations And Roadmap
 
-The audit command checks repository structure and README constraints before it delegates to the verifier.
-
-## Scenario Walkthrough
-
-`baseline` is the first example I would inspect because it lands on the `review` path with a score of 96. The broader file also keeps `degraded` at -69 and `surge` at 193, which gives the model a useful low-to-high spread.
-
-## Known Edges
-
-This code is local-first. It makes no claim about deployed usage and avoids credentials, hosted state, and environment-specific setup.
-
-## Follow-Up Work
-
-- Add a short report command that prints the score breakdown for a single scenario.
-- Add malformed input fixtures so the failure path is as visible as the happy path.
-- Split the scoring constants into a typed configuration object and validate it before use.
-- Add one more ml utilities fixture that focuses on a malformed or borderline input.
+The fixture set is small enough to audit by hand. The next useful expansion is malformed input coverage, not extra surface area.
